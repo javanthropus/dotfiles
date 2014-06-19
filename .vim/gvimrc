@@ -1,0 +1,18 @@
+" Show line numbers, relative by default.
+set number
+set relativenumber
+" Toggle relative line numbering.
+nmap <silent> <Leader>r :set norelativenumber!<CR>
+
+" When diffing...
+if &diff
+  " Add a bottom scroll bar.
+  set guioptions+=b
+  " Set a wider width based on the number of windows needed.
+  let &columns = (80 + &foldcolumn + &numberwidth) * last_buffer_nr() +
+                 \ last_buffer_nr() - 1
+else
+  " Ensure that there are 80 columns for buffer contents even when line numbers
+  " are displayed.
+  let &columns = 80 + &numberwidth
+endif

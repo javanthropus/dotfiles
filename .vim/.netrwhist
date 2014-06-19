@@ -1,0 +1,7 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhist_cnt =5
+let g:netrw_dirhist_1='/home/jeremyb/.ssh'
+let g:netrw_dirhist_2='/home/jeremyb/devel/gem-server/config/deploy'
+let g:netrw_dirhist_3='/home/jeremyb/devel/jenkins-job-manager/config/deploy'
+let g:netrw_dirhist_4='/home/jeremyb/devel/puppet-data/modules/profile/manifests/community'
+let g:netrw_dirhist_5='/home/jeremyb/devel/redmine-deployer'

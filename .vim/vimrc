@@ -1,0 +1,140 @@
+" When started as "evim", evim.vim will already have done these settings.
+if v:progname =~? "evim"
+  finish
+endif
+
+" Use Vim settings, rather than Vi settings (much better!).
+" This must be first, because it changes other options as a side effect.
+set nocompatible
+
+" Set up the pathogen plugin.
+call pathogen#infect()
+
+" Allow backspacing over everything in insert mode.
+set backspace=indent,eol,start
+
+"if has("vms")
+"  set nobackup		 " Do not keep a backup file, use versions instead.
+"else
+"  set backup		   " Keep a backup file.
+"endif
+set history=50		" Keep 50 lines of command line history.
+set ruler		      " Show the cursor position all the time.
+set showcmd		    " Display incomplete commands.
+set incsearch		  " Do incremental searching.
+
+" Don't use Ex mode, use Q for formatting
+map Q gq
+
+" Switch syntax highlighting on, when the terminal has colors
+" Also switch on highlighting the last used search pattern.
+if &t_Co > 2 || has("gui_running")
+  syntax enable
+  set hlsearch
+endif
+
+" The GUI background is light while the terminal background is dark.
+"if has("gui_running")
+"  set background=light
+"else
+"  set background=dark
+"end
+set background=dark
+
+" Use the Solarized color scheme.
+colorscheme solarized
+
+" Only do this part when compiled with support for autocommands.
+if has("autocmd")
+  " Enable file type detection.
+  " Use the default filetype settings, so that mail gets 'tw' set to 72,
+  " 'cindent' is on in C files, etc.
+  " Also load indent files, to automatically do language-dependent indenting.
+  filetype plugin indent on
+
+  " Put these in an autocmd group, so that we can delete them easily.
+  augroup vimrcEx
+  autocmd!
+
+  " Highlight dangling whitespace.
+  autocmd Syntax *
+    \ highlight def link WhitespaceWarning Error|
+    \ syn match WhitespaceWarning /\s\+$/
+
+  " Set basic properties for various file types.
+  autocmd FileType text
+    \ setlocal tw=78
+  autocmd FileType vim,java,javascript,c,c++,ruby,puppet
+    \ setlocal ts=2 sw=2 et tw=80
+  autocmd FileType perl,php
+    \ setlocal ts=2 sw=2 tw=80
+  autocmd FileType python
+    \ setlocal ts=4 sw=4 tw=80
+  autocmd FileType xml,html
+    \ setlocal ts=2 sw=2 et tw=0
+
+  " Configure toggle comment maps.
+  autocmd FileType vim
+    \ map <buffer> <silent> <Leader>cc :call CommentLineToEnd('"')<CR>|
+    \ map <buffer> <silent> <Leader>cp :call CommentLineToEnd('"')<CR>
+  autocmd FileType text,python,ruby,perl,php,conf,sh,puppet
+    \ map <buffer> <silent> <Leader>cc :call CommentLineToEnd('#')<CR>|
+    \ map <buffer> <silent> <Leader>cp :call CommentLineToEnd('#')<CR>
+  autocmd FileType java,javascript,c++
+    \ map <buffer> <silent> <Leader>cc :call CommentLineToEnd('//')<CR>|
+    \ map <buffer> <silent> <Leader>cp :call CommentLinePincer('/* ', ' */')<CR>
+  autocmd FileType c
+    \ map <buffer> <silent> <Leader>cc :call CommentLinePincer('/* ', ' */')<CR>|
+    \ map <buffer> <silent> <Leader>cp :call CommentLinePincer('/* ', ' */')<CR>
+  autocmd FileType xml,html
+    \ map <buffer> <silent> <Leader>cc :call CommentLinePincer('<!-- ', ' -->')<CR>|
+    \ map <buffer> <silent> <Leader>cp :call CommentLinePincer('<!-- ', ' -->')<CR>
+
+  " Set common pager mappings when reading manpages.
+  autocmd FileType man
+    \ map <buffer> <silent> q :q<CR>|
+    \ map <buffer> <silent> <SPACE> <PAGEDOWN>|
+    \ map <buffer> <silent> b <PAGEUP>
+
+  " When editing a file, always jump to the last known cursor position.
+  " Don't do it when the position is invalid or when inside an event handler
+  " (happens when dropping a file on gvim).
+  autocmd BufReadPost *
+    \ if line("'\"") > 0 && line("'\"") <= line("$") |
+    \   exe "normal g`\"" |
+    \ endif
+
+  augroup END
+else
+  set autoindent		" always set autoindenting on
+endif " has("autocmd")
+
+" Text handling configuration
+set fileencodings=utf-8
+set fileformats=unix,dos
+
+" Enable syntax-based folding by default.
+set foldmethod=syntax
+
+" The current window will be reused to open new manpages.
+let g:manpageview_winopen="reuse"
+
+" Allow for line wrapping with arrows, space, and backspace in commands that use
+" them.
+set whichwrap=b,s,<,>,[,]
+
+
+"
+" MAPPINGS...
+"
+
+" Disable F1.
+map <F1> <Nop>
+map! <F1> <Nop>
+
+
+" Use Leader-n to toggle NERDTree.
+nmap <silent> <Leader>n :NERDTreeToggle<CR>
+
+" Toggle search highlighting.
+nmap <silent> <Leader>/ :set nohlsearch!<CR>
