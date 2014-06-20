@@ -1,0 +1,71 @@
+#!/bin/bash
+
+OPTS_SPEC="\
+git merge-delete [options] <branch> ...
+
+Merge branches into the current branch and then delete the branches from the
+remote repository.
+--
+h           show the help
+r,remote=   select a remote alias other than origin
+m,message=  additional commit message
+ff          allow fast-forward merges (default)
+"
+eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- "$@" || echo exit $?)"
+
+REMOTE=origin
+while true; do
+	case $1 in
+		-r|--remote) REMOTE=$2; shift; shift;;
+		-m|--message) MERGE_MSG=$2; shift; shift;;
+		--ff|--no-ff) FF_OPT=$1; shift;;
+		--) shift; break;;
+	esac
+done
+
+MERGE_BRANCH=$1
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD)
+REMOTE_URL=$(git config remote."$REMOTE".url)
+
+# Ensure that a branch is checked out.
+if [ -z "$CURRENT_BRANCH" ]; then
+	echo 'Please checkout a branch into which merges will be performed' >&2
+	exit 1
+fi
+
+# Ensure that a branch to merge is specified.
+if [ -z "$MERGE_BRANCH" ]; then
+	echo 'Please specify a branch to merge' >&2
+	exit 1
+fi
+
+# Ensure that a remote URL is found.
+if [ -z "$REMOTE_URL" ]; then
+	echo "No remote URL found for remote $REMOTE" >&2
+	exit 1
+fi
+
+# Prepend a stock merge message to whatever may have been given.
+MERGE_MSG="\
+Merge branch $MERGE_BRANCH of $REMOTE_URL into $CURRENT_BRANCH
+
+$MERGE_MSG
+"
+
+# Ensure that the workspace and index are clean.
+if ! git diff-index --quiet --cached HEAD || ! git diff-files --quiet; then
+	echo 'Your working tree and/or index are modifed.' >&2
+	echo 'Remove or stash these modifications before running this command.' >&2
+	exit 1
+fi
+
+set -e
+
+# Merge requested branches.
+if git merge $FF_OPT -m "$MERGE_MSG" "$REMOTE/$MERGE_BRANCH"; then
+	echo git push "$REMOTE" :"$MERGE_BRANCH"
+else
+	git merge --abort >/dev/null 2>&1
+	echo "Unable to automatically merge ${MERGE_BRANCH}."
+	exit 1
+fi

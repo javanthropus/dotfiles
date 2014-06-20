@@ -1,0 +1,82 @@
+#!/bin/bash
+
+OPTS_SPEC="\
+git report-stale [options]
+
+Report branches in the remote repository whose most recent commits are
+\"stale\".
+
+By default the following branches are ignored:
+  master
+  develop
+  private/*
+
+The defaults can be overridden by adding 1 or more instances of the
+reportstale.ignorebranch git config setting or by use of the -i and -I
+options.
+--
+h              show the help
+r,remote=      select a remote (default origin)
+s,stale-age=   the minimum age in days for stale branches (default 30)
+m,merged!      show only the branches fully merged to master
+u,unmerged!    show only the branches NOT fully merged to master
+a,all!         show all stale branches (default)
+i,ignore=      add a glob matching branches to be ignored (cumulative)
+I,no-ignore!   remove all branch ignore globs
+"
+eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- "$@" || echo exit $?)"
+
+IGNORE_GLOB=$(git config --get-all reportstale.ignorebranch | paste -sd '|' -)
+if [ -z "$IGNORE_GLOB" ]; then
+	IGNORE_GLOB='master|develop|private/*'
+fi
+REMOTE=origin
+STALE_AGE=30
+SHOW=all
+while true; do
+	case $1 in
+		-r|--remote) REMOTE=$2; shift; shift;;
+		-s|--stale-age) STALE_AGE=$2; shift; shift;;
+		-m|--merged) SHOW=merged; shift;;
+		-u|--unmerged) SHOW=unmerged; shift;;
+		-a|--all) SHOW=all; shift;;
+		-i|--ignore) IGNORE_GLOB="$IGNORE_GLOB|$2"; shift; shift;;
+		-I|--no-ignore) IGNORE_GLOB=; shift;;
+		--) shift; break;;
+	esac
+done
+IGNORE_GLOB=${IGNORE_GLOB#|}
+
+NOW=$(date +%s)
+
+# Convert stale age into seconds.
+STALE_AGE=$(($STALE_AGE*24*60*60))
+
+# Process each branch from oldest to youngest.
+git for-each-ref --sort committerdate --format '%(committerdate:raw) %(objectname) %(refname) %(committername) %(committeremail)' refs/remotes/"$REMOTE" |
+while read TIME TZ REVISION REFERENCE INFO; do
+	REFERENCE=${REFERENCE/#refs\/remotes\/$REMOTE\//}
+
+	# Skip ignored branches.
+	if [ -n "$IGNORE_GLOB" ]; then
+		eval "\
+		case $REFERENCE in
+			$IGNORE_GLOB) continue;;
+		esac
+		"
+	fi
+
+	# Skip all remaining branches following the first non-stale branch.
+	[ $(($NOW - $TIME)) -lt $STALE_AGE ] && break
+
+	# Record whether or not the branch is fully merged into the master
+	# branch.
+	MERGED=0
+	[ $(git merge-base "$REMOTE"/master $REVISION) = $REVISION ] &&
+	       	MERGED=1
+
+	# Report on old branches.
+	if [ $SHOW = all -o $MERGED = 1 -a $SHOW = merged -o $MERGED = 0 -a $SHOW = unmerged ]; then
+		printf '%-40s %s\n' $REFERENCE "$INFO"
+	fi
+done

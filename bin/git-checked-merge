@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Skip migration review when requested.
+[ "$REVIEW_MIGRATIONS" = no ] && exit 0
+
+# Only check merge commits.
+git rev-parse --quiet --verify MERGE_HEAD >/dev/null || exit 0
+
+# Only process merges into sacred branches.
+REF=$(git symbolic-ref --short HEAD 2>/dev/null)
+[ -z "$REF" ] && exit 0
+SACRED_GLOB=$(git config --get-all merge.sacredbranch | paste -sd '|' -)
+if [ -z "$SACRED_GLOB" ]; then
+	SACRED_GLOB='master|develop|hotfix/*|patch/*|release/*'
+fi
+eval "\
+case $REF in
+	$SACRED_GLOB) ;;
+	*) exit 0;;
+esac
+"
+
+# Manage a log file for reported migrations.
+trap 'rm $LOG' EXIT
+LOG=$(mktemp --tmpdir)
+
+# Evaluate migrations to be committed.
+git diff --cached --name-only -z -- db/migrate/ |
+# Report unreviewed migrations.
+xargs -0 egrep -L '#[\s\t]+\*\*REVIEWED\*\*' |
+# Check for any reported migrations and log them.
+grep . >$LOG &&
+{
+	# Report unreviewed migrations, if any.
+	echo 'Unreviewed migrations found:' >&2
+	sed 's/^/  /' $LOG >&2
+	exit 1
+}
+
+# All checks passed.
+exit 0

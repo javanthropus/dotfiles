@@ -1,0 +1,72 @@
+#!/bin/bash
+
+OPTS_SPEC="\
+git revert-to <commit>
+
+Reverts the currently checked out branch to <commit> via a single commit
+operation.
+--
+h            show the help
+m,message=   additional commit message
+"
+eval "$(echo "$OPTS_SPEC" | git rev-parse --parseopt -- "$@" || echo exit $?)"
+
+while true; do
+	case $1 in
+		-m|--message) REVERT_MSG=$2; shift; shift;;
+		--) shift; break;;
+	esac
+done
+
+TARGET_COMMIT=$1; shift
+
+# Ensure the target commit is specified.
+if [ -z "$TARGET_COMMIT" ]; then
+	echo 'Please specify a target commit to which to revert' >&2
+	exit 1
+fi
+
+# Bail if more than 1 argument was given.
+if [ $# -gt 0 ]; then
+	echo 'Too many arguments' >&2
+	exit 1
+fi
+
+TARGET_REVISION=$(git rev-parse "$TARGET_COMMIT" 2>/dev/null)
+
+# Ensure the target commit identifies a single revision.
+if [ $(echo "$TARGET_REVISION" | wc -l) -ne 1 ]; then
+	echo "$TARGET_COMMIT does not identify a single revision" >&2
+	exit 1
+fi
+
+# Bail if the target revision is not in the history of the current branch.
+if [ $(git merge-base $TARGET_REVISION HEAD) != $TARGET_REVISION ]; then
+	echo 'The target commit must be an ancestor of the current commit' >&2
+	exit 1
+fi
+
+# Prepend a stock revert message to whatever may have been given.
+REVERT_MSG="\
+Revert to $TARGET_REVISION
+
+$REVERT_MSG
+"
+
+# Ensure that the workspace and index are clean.
+if ! git diff-index --quiet --cached HEAD || ! git diff-files --quiet; then
+	echo 'Your working tree and/or index are modifed.' >&2
+	echo 'Remove or stash these modifications before running this command.' >&2
+	exit 1
+fi
+
+set -e
+
+# Make the index and working tree match the target revision.
+if git read-tree -u --reset $TARGET_REVISION; then
+	# Commit!
+	git commit -m "$REVERT_MSG"
+else
+	# Undo on error.
+	git reset --hard HEAD
+fi
