@@ -1,0 +1,33 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=955
+
+This utility draws heavily from vimtip #271 and additional note 2002-07-06.
+Yet it's different in one or more aspects from other tips and scripts I'm
+aware off.
+
+Features:
+
+- de-/commtify lines in normal mode (with count) and visual mode
+- use the same keys for commenting and decommenting
+- language independent, you define different mappings for various languages
+  and/or one comment-command for different filetypes
+- simple and flexibel, to change the comment characters from '#' to '# ' e.g.,
+  just change a mapping in your .vimrc, not the script
+- comment-style: comments are indented like the uncommented line
+- no hlsearch problem, last search pattern and .-command are preserved
+- inserted comment characters are protected from further expansion
+- might be adapted to other comment styles (first column comments, ...)
+
+Example:
+
+Commented text looks like this:
+
+    #if uncommented:
+        /* comment the line */
+    <!-- else: -->
+        // uncomment the
+        // lines
+        no comment
+
+You would put or remove this comments (cursor on the first line), by typing:
+    ,# ,* ,< 2,/
+
