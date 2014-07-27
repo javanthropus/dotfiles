@@ -26,7 +26,7 @@ function __safe_git_ps1 {
 }
 
 case x$TERM in
-	xscreen|xxterm*)
+	xscreen|xxterm*|xrxvt|xEterm|xeterm)
 		PS1_BASE='\[\033]0;%t\u@\h:\w\007\n\033[32m\]\u@\h \[\033[33m\]\w\[\033[0m\]\[\033[31m\]$(__safe_git_ps1)\[\033[0m\]\n\$ '
 		set_title
 		;;
