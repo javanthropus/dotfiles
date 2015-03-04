@@ -72,7 +72,7 @@ while read TIME TZ REVISION REFERENCE INFO; do
 	# Record whether or not the branch is fully merged into the master
 	# branch.
 	MERGED=0
-	[ $(git merge-base "$REMOTE"/master $REVISION) = $REVISION ] &&
+	[ "$(git merge-base "$REMOTE"/master $REVISION)" = $REVISION ] &&
 	       	MERGED=1
 
 	# Report on old branches.
