@@ -64,7 +64,7 @@ if has("autocmd")
   " Set basic properties for various file types.
   autocmd FileType text
     \ setlocal tw=78
-  autocmd FileType vim,java,javascript,c,c++,ruby,puppet
+  autocmd FileType vim,java,javascript,c,c++,ruby,eruby,puppet
     \ setlocal ts=2 sw=2 et tw=80
   autocmd FileType perl,php
     \ setlocal ts=2 sw=2 tw=80
