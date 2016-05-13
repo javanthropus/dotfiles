@@ -61,6 +61,9 @@ if has("autocmd")
     \ highlight def link WhitespaceWarning Error|
     \ syn match WhitespaceWarning /\s\+$/
 
+  " Detect .cap files as the ruby file type.
+  autocmd BufRead,BufNewFile *.cap setfiletype ruby
+
   " Set basic properties for various file types.
   autocmd FileType text
     \ setlocal tw=78
