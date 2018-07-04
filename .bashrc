@@ -16,29 +16,51 @@ fi
 # though this example doesn't produce any.  Do setup for
 # command-line interactivity.
 
-function set_title {
-	STR=$(echo "$1" | sed 's/\\/\\\\/g')
-	PS1=$(echo "$PS1_BASE" | sed "s/%t/$STR/g")
+. ~/.kube_profile
+function toggle_kube {
+	case "$KUBE_DETAILS" in
+		1) unset KUBE_DETAILS;;
+		*) KUBE_DETAILS=1;;
+	esac
 }
 
-function __safe_git_ps1 {
-	type -t __git_ps1 >/dev/null && __git_ps1
-}
-
-case x$TERM in
-	xscreen|xxterm*|xrxvt|xEterm|xeterm)
-		PS1_BASE='\[\033]0;%t\u@\h:\w\007\n\033[32m\]\u@\h \[\033[33m\]\w\[\033[0m\]\[\033[31m\]$(__safe_git_ps1)\[\033[0m\]\n\$ '
-		set_title
-		;;
-	xcygwin|xlinux)
-		PS1_BASE='\n\033[32m\]%t\[\033[0m\]\[\033[31m\]$(__safe_git_ps1)\[\033[0m\]\n\$ '
-		set_title '\u@\h \[\033[33m\]\w'
-		;;
-	*)
-		PS1_BASE='\n\u@\h \w$(__safe_git_ps1)\n$ '
-		set_title
+case "$TERM" in
+	screen|xterm*|rxvt|Eterm|eterm|cygwin|linux)
+		COLOR_RED='\[\033[31m\]'
+		COLOR_GREEN='\[\033[32m\]'
+		COLOR_BLUE='\[\033[34m\]'
+		COLOR_YELLOW='\[\033[33m\]'
+		COLOR_RESET='\[\033[0m\]'
 		;;
 esac
+
+function ps1_title {
+	case "$TERM" in
+		screen|xterm*|rxvt|Eterm|eterm)
+			echo '\[\033]0;${TERM_TITLE}\u@\h:\w\007\]'
+			;;
+	esac
+}
+
+function ps1_kube {
+	[ "$KUBE_DETAILS" = 1 ] || return
+	echo '\n'$COLOR_BLUE'[$(kube_info)]'$COLOR_RESET
+}
+
+function ps1_info {
+	echo '\n'$COLOR_GREEN'\u@\h '$COLOR_YELLOW'\w'$COLOR_RESET
+}
+
+function ps1_git {
+	type -t __git_ps1 >/dev/null || return
+	echo $COLOR_RED'$(__git_ps1)'$COLOR_RESET
+}
+
+function prompt_command {
+	PS1=$(ps1_title)$(ps1_kube)$(ps1_info)$(ps1_git)'\n\$ '
+}
+
+PROMPT_COMMAND='prompt_command'
 
 # Pick a nice pager for man.
 if [ -x ~/bin/manpager.sh ]; then
@@ -58,6 +80,9 @@ alias ls='ls --color=auto'
 
 # Activate bash-completion.
 [ -f /etc/bash_completion ] && source /etc/bash_completion
+
+# Set up bash completions for k8s, if available.
+source <(kubectl completion bash 2>/dev/null)
 
 # This loads rbenv, if available.
 if [[ -x "$HOME/.rbenv/bin/rbenv" ]]; then

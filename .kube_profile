@@ -1,0 +1,42 @@
+# Prints the currently selected k8s context, user, cluster, and namespace in
+# that order, delimited by colons.
+function kube_info {
+	[ -n "$KUBECTL_CONTEXT" ] ||
+		KUBECTL_CONTEXT=$(kubectl config current-context 2>/dev/null) || return 1
+
+	[ -n "$KUBECTL_CLUSTER" ] ||
+		KUBECTL_CLUSTER=$(kubectl config view -o jsonpath='{.contexts[?(@.name == "'"$KUBECTL_CONTEXT"'")].context.cluster}' 2>/dev/null) || return 1
+
+	[ -n "$KUBECTL_NAMESPACE" ] ||
+		KUBECTL_NAMESPACE=$(kubectl config view -o jsonpath='{.contexts[?(@.name == "'"$KUBECTL_CONTEXT"'")].context.namespace}' 2>/dev/null) || return 1
+	[ -n "$KUBECTL_NAMESPACE" ] || KUBECTL_NAMESPACE=default
+
+	[ -n "$KUBECTL_USER" ] ||
+		KUBECTL_USER=$(kubectl config view -o jsonpath='{.contexts[?(@.name == "'"$KUBECTL_CONTEXT"'")].context.user}' 2>/dev/null) || return 1
+
+	printf '%s@%s:%s' "$KUBECTL_USER" "$KUBECTL_CLUSTER" "$KUBECTL_NAMESPACE"
+}
+
+# These functions are convenience helpers to set the various environment
+# variables used for overriding the kubectl config.
+function kcnf {
+	export KUBECONFIG=$1
+}
+
+function kco {
+	export KUBECTL_CONTEXT=$1
+}
+
+function kcl {
+	export KUBECTL_CLUSTER=$1
+}
+
+function kns {
+	export KUBECTL_NAMESPACE=$1
+}
+
+function ku {
+	export KUBECTL_USER=$1
+}
+
+# vim: set ft=sh:
