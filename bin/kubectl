@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# This script is only needed until kubectl itself uses the KUBECTL_* variables
+# to override settings from the config file.	Ensure that this script appears
+# in PATH before the real kubectl program.
+#
+# See: https://github.com/kubernetes/kubernetes/issues/27308
+
+KUBECTL=$(type -ap kubectl | grep -v "^$0$" | head -n 1)
+if [ -z "$KUBECTL" ]; then
+	echo 'kubectl: real kubectl not found' >&2
+	exit 1
+fi
+
+[ -n "$KUBECTL_CONTEXT" ] &&
+	set - --context="$KUBECTL_CONTEXT" "$@"
+[ -n "$KUBECTL_CLUSTER" ] &&
+	set - --cluster="$KUBECTL_CLUSTER" "$@"
+[ -n "$KUBECTL_NAMESPACE" ] &&
+	set - --namespace="$KUBECTL_NAMESPACE" "$@"
+[ -n "$KUBECTL_USER" ] &&
+	set - --user="$KUBECTL_USER" "$@"
+
+exec $KUBECTL "$@"
+
+# vim: set ft=sh:
