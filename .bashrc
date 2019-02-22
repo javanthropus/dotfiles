@@ -2,6 +2,7 @@
 # including some apparently interactive shells such as scp and rcp
 # that can't tolerate any output.
 
+umask 022
 PATH=~/bin:/bin:$PATH
 
 # Test for an interactive shell.  There is no need to set anything
