@@ -1,6 +1,3 @@
-if type -p keychain >/dev/null; then
-	keychain ~/.ssh/id_rsa
-	. ~/.keychain/${HOSTNAME}-sh
-fi
+[ -f ~/.bashrc ] && source ~/.bashrc
 
-[ -f .bashrc ] && source .bashrc
+type -p keychain >/dev/null && eval $(keychain --eval --agents ssh id_rsa)
