@@ -1,2 +1,5 @@
 # Ignore vim swap files
 .*.sw?
+
+# Ignore bin files by default
+bin/
