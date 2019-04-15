@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script is only needed until kubectl itself uses the KUBECTL_* variables
-# to override settings from the config file.	Ensure that this script appears
+# to override settings from the config file.  Ensure that this script appears
 # in PATH before the real kubectl program.
 #
 # See: https://github.com/kubernetes/kubernetes/issues/27308
