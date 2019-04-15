@@ -91,4 +91,9 @@ if [[ -x "$HOME/.rbenv/bin/rbenv" ]]; then
 	eval "$(rbenv init -)"
 fi
 
+# This loads rust, if available.
+if [[ -f "$HOME/.cargo/env" ]]; then
+	source "$HOME/.cargo/env"
+fi
+
 [ ! -f ~/.bashrc_local ] || . ~/.bashrc_local
