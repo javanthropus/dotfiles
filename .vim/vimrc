@@ -14,14 +14,14 @@ call pathogen#infect()
 set backspace=indent,eol,start
 
 "if has("vms")
-"  set nobackup		 " Do not keep a backup file, use versions instead.
+"  set nobackup    " Do not keep a backup file, use versions instead.
 "else
-"  set backup		   " Keep a backup file.
+"  set backup      " Keep a backup file.
 "endif
-set history=50		" Keep 50 lines of command line history.
-set ruler		      " Show the cursor position all the time.
-set showcmd		    " Display incomplete commands.
-set incsearch		  " Do incremental searching.
+set history=50    " Keep 50 lines of command line history.
+set ruler         " Show the cursor position all the time.
+set showcmd       " Display incomplete commands.
+set incsearch     " Do incremental searching.
 
 " Don't use Ex mode, use Q for formatting
 map Q gq
@@ -109,7 +109,7 @@ if has("autocmd")
 
   augroup END
 else
-  set autoindent		" always set autoindenting on
+  set autoindent    " always set autoindenting on
 endif " has("autocmd")
 
 " Text handling configuration
