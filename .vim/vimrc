@@ -58,7 +58,7 @@ if has("autocmd")
 
   " Highlight dangling whitespace.
   autocmd Syntax *
-    \ highlight def link WhitespaceWarning Error|
+    \ highlight def link WhitespaceWarning ErrorMsg|
     \ syn match WhitespaceWarning /\s\+$/
 
   " Detect .cap files as the ruby file type.
@@ -83,7 +83,7 @@ if has("autocmd")
   autocmd FileType text,python,ruby,perl,php,conf,sh,puppet
     \ map <buffer> <silent> <Leader>cc :call CommentLineToEnd('#')<CR>|
     \ map <buffer> <silent> <Leader>cp :call CommentLineToEnd('#')<CR>
-  autocmd FileType java,javascript,c++
+  autocmd FileType java,javascript,c++,rust
     \ map <buffer> <silent> <Leader>cc :call CommentLineToEnd('//')<CR>|
     \ map <buffer> <silent> <Leader>cp :call CommentLinePincer('/* ', ' */')<CR>
   autocmd FileType c
@@ -125,6 +125,9 @@ let g:manpageview_winopen="reuse"
 " Allow for line wrapping with arrows, space, and backspace in commands that use
 " them.
 set whichwrap=b,s,<,>,[,]
+
+" Show visible markers for difficult text situations.
+set list listchars=tab:→·,nbsp:⎵,precedes:«,extends:»
 
 
 "
