@@ -44,6 +44,10 @@ set background=dark
 " Use the Solarized color scheme.
 colorscheme solarized
 
+" Configure autosave.
+let g:auto_save = 1
+let g:auto_save_silent = 1
+
 " Only do this part when compiled with support for autocommands.
 if has("autocmd")
   " Enable file type detection.
