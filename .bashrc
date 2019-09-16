@@ -20,8 +20,8 @@ fi
 . ~/.kube_profile
 function toggle_kube {
 	case "$KUBE_DETAILS" in
-		1) unset KUBE_DETAILS;;
-		*) KUBE_DETAILS=1;;
+		1) unset KUBE_DETAILS; exit_kube_session;;
+		*) KUBE_DETAILS=1; init_kube_session;;
 	esac
 }
 

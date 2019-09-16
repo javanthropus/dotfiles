@@ -1,42 +1,102 @@
-# Prints the currently selected k8s context, user, cluster, and namespace in
-# that order, delimited by colons.
+# Prints the currently selected k8s user, cluster, and namespace as
+# user@cluster:namespace.
 function kube_info {
-	[ -n "$KUBECTL_CONTEXT" ] ||
-		KUBECTL_CONTEXT=$(kubectl config current-context 2>/dev/null) || return 1
-
-	[ -n "$KUBECTL_CLUSTER" ] ||
-		KUBECTL_CLUSTER=$(kubectl config view -o jsonpath='{.contexts[?(@.name == "'"$KUBECTL_CONTEXT"'")].context.cluster}' 2>/dev/null) || return 1
-
-	[ -n "$KUBECTL_NAMESPACE" ] ||
-		KUBECTL_NAMESPACE=$(kubectl config view -o jsonpath='{.contexts[?(@.name == "'"$KUBECTL_CONTEXT"'")].context.namespace}' 2>/dev/null) || return 1
-	[ -n "$KUBECTL_NAMESPACE" ] || KUBECTL_NAMESPACE=default
-
-	[ -n "$KUBECTL_USER" ] ||
-		KUBECTL_USER=$(kubectl config view -o jsonpath='{.contexts[?(@.name == "'"$KUBECTL_CONTEXT"'")].context.user}' 2>/dev/null) || return 1
-
-	printf '%s@%s:%s' "$KUBECTL_USER" "$KUBECTL_CLUSTER" "$KUBECTL_NAMESPACE"
+	JSONPATH="{range .contexts[?(@.name == '$(kubectl config current-context 2>/dev/null)')].context}{.user}@{.cluster}:{.namespace}{end}"
+	kubectl config view -o jsonpath="$JSONPATH" |
+		sed 's/^@/(none)@/; s/@:/@localhost:/; s/:$/:default/'
 }
 
-# These functions are convenience helpers to set the various environment
-# variables used for overriding the kubectl config.
+# Manages the KUBECONFIG environment variable by apending the given config file
+# to the end of the list.  If no argument is given, the default KUBECONFIG
+# setting is reinstated.
 function kcnf {
-	export KUBECONFIG=$1
+	KUBECONFIG=$(printf '%s\n%s\n%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | grep . | tr '\n' ':' | sed 's/:$//')
+	export KUBECONFIG
 }
 
+# Records the current setting of the KUBECONFIG environment variable.
+function kcnf_save {
+	ORIG_KUBECONFIG=$KUBECONFIG
+	ORIG_KUBECONFIG_SET=1
+}
+
+# Reinstates the original setting of the KUBECONFIG environment variable.
+function kcnf_restore {
+	[ -z "$ORIG_KUBECONFIG_SET" ] || KUBECONFIG=$ORIG_KUBECONFIG
+	unset ORIG_KUBECONFIG_SET ORIG_KUBECONFIG
+}
+
+# Sets the name of the current context to use.
 function kco {
-	export KUBECTL_CONTEXT=$1
+	if [ -z "$1" ]; then
+		echo 'kco: context not provided' >&2
+		return 1
+	fi
+
+	kubectl config use-context "$1"
 }
 
+# Sets the name of the cluster to use in the currently selected context.
 function kcl {
-	export KUBECTL_CLUSTER=$1
+	if [ -z "$1" ]; then
+		echo 'kcl: cluster not provided' >&2
+		return 1
+	fi
+
+	kubectl config set-context --current --cluster "$1"
 }
 
+# Sets the name of the namespace to use in the currently selected context.
 function kns {
-	export KUBECTL_NAMESPACE=$1
+	if [ -z "$1" ]; then
+		echo 'kns: namespace not provided' >&2
+		return 1
+	fi
+
+	kubectl config set-context --current --namespace "$1"
 }
 
+# Sets the name of the user to use in the currently selected context.
 function ku {
-	export KUBECTL_USER=$1
+	if [ -z "$1" ]; then
+		echo 'ku: user not provided' >&2
+		return 1
+	fi
+
+	kubectl config set-context --current --user "$1"
+}
+
+# Initializes a new kubeconfig session by creating a temporary file to hold
+# session specific settings for context and prepending that file to the
+# KUBECONFIG environnment variable value.
+function init_kube_session {
+	if [ -z "$SESSION_KUBECONFIG" ]; then
+		trap '[ -z "$SESSION_KUBECONFIG" ] || rm -f "$SESSION_KUBECONFIG"' EXIT
+		SESSION_KUBECONFIG=$(mktemp)
+	fi
+
+	# Initialize the session config from its template file if available.
+	[ -f ~/.kube/session_config ] &&
+		cp ~/.kube/session_config "$SESSION_KUBECONFIG"
+
+	# Initialize the KUBECONFIG environment variable to include the session
+	# config file.
+	kcnf_save
+	kcnf
+
+	if ! kubectl --kubeconfig "$SESSION_KUBECONFIG" config current-context >/dev/null 2>&1; then
+		# Ensure that a context named "session" exists and use it.
+		kubectl --kubeconfig "$SESSION_KUBECONFIG" config set-context session
+		kubectl --kubeconfig "$SESSION_KUBECONFIG" config use-context session
+	fi
+}
+
+function exit_kube_session {
+	[ -z "$SESSION_KUBECONFIG" ] && return
+
+	rm -f "$SESSION_KUBECONFIG"
+	unset SESSION_KUBECONFIG
+	kcnf_restore
 }
 
 # vim: set ft=sh:
