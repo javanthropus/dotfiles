@@ -44,6 +44,13 @@ set background=dark
 " Use the Solarized color scheme.
 colorscheme solarized
 
+" This makes managing comments in code much easier.  Override if necessary in
+" the autocmd for particular file types.
+set formatoptions=croqlnj
+
+" This adds support for both bullet and numbered lists.
+set formatlistpat=^\\s*[-*+][\\t\ ]\\s*\\\\|^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
+
 " Configure autosave.
 let g:auto_save = 1
 let g:auto_save_silent = 1
