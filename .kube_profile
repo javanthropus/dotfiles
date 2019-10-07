@@ -13,6 +13,14 @@ function kcnf {
 	KUBECONFIG=$(printf '%s\n%s\n%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | grep . | tr '\n' ':' | sed 's/:$//')
 	export KUBECONFIG
 }
+function _kube_profile_configs {
+	COMPREPLY=()
+	[ $COMP_CWORD -gt 1 ] && return
+	local word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(cd $HOME/.kube && ls *.yaml | sed 's|\.yaml$||')
+	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
+}
+complete -F _kube_profile_configs kcnf
 
 # Records the current setting of the KUBECONFIG environment variable.
 function kcnf_save {
@@ -35,6 +43,13 @@ function kco {
 
 	kubectl config use-context "$1"
 }
+function _kube_profile_contexts {
+	COMPREPLY=()
+	[ $COMP_CWORD -gt 1 ] && return
+	local cur="${COMP_WORDS[COMP_CWORD]}"
+	__kubectl_config_get_contexts
+}
+complete -F _kube_profile_contexts kco
 
 # Sets the name of the cluster to use in the currently selected context.
 function kcl {
@@ -45,6 +60,13 @@ function kcl {
 
 	kubectl config set-context --current --cluster "$1"
 }
+function _kube_profile_clusters {
+	COMPREPLY=()
+	[ $COMP_CWORD -gt 1 ] && return
+	local cur="${COMP_WORDS[COMP_CWORD]}"
+	__kubectl_config_get_clusters
+}
+complete -F _kube_profile_clusters kcl
 
 # Sets the name of the namespace to use in the currently selected context.
 function kns {
@@ -55,6 +77,13 @@ function kns {
 
 	kubectl config set-context --current --namespace "$1"
 }
+function _kube_profile_namespaces {
+	COMPREPLY=()
+	[ $COMP_CWORD -gt 1 ] && return
+	local cur="${COMP_WORDS[COMP_CWORD]}"
+	__kubectl_get_resource_namespace
+}
+complete -F _kube_profile_namespaces kns
 
 # Sets the name of the user to use in the currently selected context.
 function ku {
@@ -65,6 +94,13 @@ function ku {
 
 	kubectl config set-context --current --user "$1"
 }
+function _kube_profile_users {
+	COMPREPLY=()
+	[ $COMP_CWORD -gt 1 ] && return
+	local cur="${COMP_WORDS[COMP_CWORD]}"
+	__kubectl_config_get_users
+}
+complete -F _kube_profile_users kcu
 
 # Initializes a new kubeconfig session by creating a temporary file to hold
 # session specific settings for context and prepending that file to the
