@@ -1,5 +1,7 @@
-# Ignore vim swap files
+# Vim swap files
 .*.sw?
 
-# Ignore bin files by default
+# vimrc override
+.vim/vimrc.local
+
 bin/
