@@ -68,10 +68,13 @@ if has("autocmd")
   " Detect .cap files as the ruby file type.
   autocmd BufRead,BufNewFile *.cap setfiletype ruby
 
+  " Detect .hcl files as the terraform file type.
+  autocmd BufRead,BufNewFile *.hcl setfiletype terraform
+
   " Set basic properties for various file types.
   autocmd FileType text
     \ setlocal tw=78
-  autocmd FileType vim,java,javascript,c,c++,ruby,eruby,puppet,yaml
+  autocmd FileType vim,java,javascript,c,c++,ruby,eruby,puppet,yaml,terraform
     \ setlocal ts=2 sw=2 et tw=80
   autocmd FileType perl,php
     \ setlocal ts=2 sw=2 tw=80
