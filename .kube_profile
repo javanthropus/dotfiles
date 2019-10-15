@@ -100,7 +100,7 @@ function _kube_profile_users {
 	local cur="${COMP_WORDS[COMP_CWORD]}"
 	__kubectl_config_get_users
 }
-complete -F _kube_profile_users kcu
+complete -F _kube_profile_users ku
 
 # Initializes a new kubeconfig session by creating a temporary file to hold
 # session specific settings for context and prepending that file to the
