@@ -10,7 +10,7 @@ function kube_info {
 # to the end of the list.  If no argument is given, the default KUBECONFIG
 # setting is reinstated.
 function kcnf {
-	KUBECONFIG=$(printf '%s\n%s\n%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | grep . | tr '\n' ':' | sed 's/:$//')
+	KUBECONFIG=$(printf '%s:%s:%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | sed 's/:::*/:/g; s/^://; s/:$//')
 	export KUBECONFIG
 }
 function _kube_profile_configs {
