@@ -160,4 +160,4 @@ map! <F1> <Nop>
 nmap <silent> <Leader>n :NERDTreeToggle<CR>
 
 " Toggle search highlighting.
-nmap <silent> <Leader>/ :set nohlsearch!<CR>
+nmap <silent> <Leader>/ :noh<CR>
