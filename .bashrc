@@ -64,8 +64,8 @@ function prompt_command {
 PROMPT_COMMAND='prompt_command'
 
 # Pick a nice pager for man.
-if [ -x ~/bin/manpager.sh ]; then
-	export MANPAGER=~/bin/manpager.sh
+if type vim >&/dev/null; then
+	export MANPAGER='vim -M +MANPAGER --not-a-term -'
 fi
 
 # Beep...
