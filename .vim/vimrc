@@ -95,6 +95,9 @@ if has("autocmd")
   autocmd FileType go
     \ setlocal ts=4 sw=4 noet tw=0|
     \ set list listchars+=tab:\│\ 
+  autocmd FileType sh
+    \ setlocal ts=8 sw=8 noet tw=80|
+    \ set list listchars+=tab:\│\ 
 
   " Configure toggle comment maps.
   autocmd FileType vim
