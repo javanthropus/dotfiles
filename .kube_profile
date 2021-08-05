@@ -108,7 +108,7 @@ complete -F _kube_profile_users ku
 function init_kube_session {
 	if [ -z "$SESSION_KUBECONFIG" ]; then
 		trap '[ -z "$SESSION_KUBECONFIG" ] || rm -f "$SESSION_KUBECONFIG"' EXIT
-		SESSION_KUBECONFIG=$(mktemp)
+		SESSION_KUBECONFIG=$(mktemp -t kube-session.XXXXXXXXXX)
 	fi
 
 	# Initialize the session config from its template file if available.
