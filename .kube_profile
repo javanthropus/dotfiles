@@ -46,8 +46,9 @@ function kco {
 function _kube_profile_contexts {
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local cur="${COMP_WORDS[COMP_CWORD]}"
-	__kubectl_config_get_contexts
+	local word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(kubectl config get-contexts --no-headers -o name)
+	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_profile_contexts kco
 
@@ -63,8 +64,9 @@ function kcl {
 function _kube_profile_clusters {
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local cur="${COMP_WORDS[COMP_CWORD]}"
-	__kubectl_config_get_clusters
+	local word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(kubectl config get-clusters | tail -n +2)
+	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_profile_clusters kcl
 
@@ -80,8 +82,9 @@ function kns {
 function _kube_profile_namespaces {
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local cur="${COMP_WORDS[COMP_CWORD]}"
-	__kubectl_get_resource_namespace
+	local word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(kubectl get ns --no-headers -o custom-columns=NAME:.metadata.name)
+	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_profile_namespaces kns
 
@@ -97,8 +100,9 @@ function ku {
 function _kube_profile_users {
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local cur="${COMP_WORDS[COMP_CWORD]}"
-	__kubectl_config_get_users
+	local word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(kubectl config get-users | tail -n +2)
+	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_profile_users ku
 
