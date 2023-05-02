@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+
+def normalize(o)
+  case o
+  when Hash
+    o = o.map do |k, v|
+      [k, normalize(v)]
+    end.sort.to_h
+  when Array
+    o = o.map { |v| normalize(v) }.sort_by! { |v| v.to_s }
+  end
+
+  o
+end
+
+puts YAML.dump_stream(*normalize(YAML.load_stream($stdin).select { |h| h }))
