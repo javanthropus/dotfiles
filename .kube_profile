@@ -1,9 +1,26 @@
 # Prints the currently selected k8s user, cluster, and namespace as
 # user@cluster:namespace.
 function kube_info {
-	JSONPATH="{range .contexts[?(@.name == '$(kubectl config current-context 2>/dev/null)')].context}{.user}@{.cluster}:{.namespace}{end}"
-	kubectl config view -o jsonpath="$JSONPATH" |
-		sed 's/^@/(none)@/; s/@:/@localhost:/; s/:$/:default/'
+	KUBE_INFO='
+{{- $userName := "(none)" }}
+{{- $clusterName := "localhost" }}
+{{- $namespaceName := "default" }}
+{{- range .contexts }}
+  {{- if eq .name (index $ "current-context") }}
+    {{- if .context.user }}
+      {{- $userName = .context.user }}
+    {{- end }}
+    {{- if .context.cluster }}
+      {{- $clusterName = .context.cluster }}
+    {{- end }}
+    {{- if .context.namespace }}
+      {{- $namespaceName = .context.namespace }}
+    {{- end }}
+    {{- break }}
+  {{- end }}
+{{- end -}}
+{{ $userName }}@{{ $clusterName }}:{{ $namespaceName }}'
+	kubectl config view -o go-template="$KUBE_INFO"
 }
 
 # Manages the KUBECONFIG environment variable by apending the given config file
