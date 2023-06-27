@@ -16,10 +16,10 @@ function kube_info {
     {{- if .context.namespace }}
       {{- $namespaceName = .context.namespace }}
     {{- end }}
+    {{- $userName }}@{{ $clusterName }}:{{ $namespaceName }}
     {{- break }}
   {{- end }}
-{{- end -}}
-{{ $userName }}@{{ $clusterName }}:{{ $namespaceName }}'
+{{- end }}'
 	kubectl config view -o go-template="$KUBE_INFO"
 }
 
