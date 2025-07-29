@@ -15,4 +15,13 @@ def normalize(o)
   o
 end
 
-puts YAML.dump_stream(*normalize(YAML.load_stream($stdin).select { |h| h }))
+puts YAML.dump_stream(
+  *YAML.load_stream($stdin)
+  # Discard empty documents.
+  .select { |h| h }
+  # Assume k8s manifests and sort by kind and name.
+  .sort_by { |manifest| [manifest['kind'], manifest['metadata']['name']] }
+  # Normalize each document individually in order to preserve the k8s specific
+  # sort order.
+  .map { |manifest| normalize(manifest) }
+)
