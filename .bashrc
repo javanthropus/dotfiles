@@ -15,9 +15,8 @@ if [[ $- != *i* ]]; then
 	return
 fi
 
-# Shell is interactive.  It is okay to produce output at this point,
-# though this example doesn't produce any.  Do setup for
-# command-line interactivity.
+# Shell is interactive.  It is okay to produce output at this point.
+# Do setup for command-line interactivity.
 
 . ~/.kube_profile
 function toggle_kube {
