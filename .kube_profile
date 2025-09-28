@@ -159,3 +159,12 @@ function exit_kube_session {
 	kcnf_restore
 }
 
+function toggle_kube {
+  if [ -z "$SESSION_KUBECONFIG" ]; then
+    init_kube_session
+  else
+    exit_kube_session
+  fi
+}
+
+init_kube_session

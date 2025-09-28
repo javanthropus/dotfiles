@@ -19,12 +19,6 @@ fi
 # Do setup for command-line interactivity.
 
 . ~/.kube_profile
-function toggle_kube {
-	case "$KUBE_DETAILS" in
-		1) unset KUBE_DETAILS; exit_kube_session;;
-		*) KUBE_DETAILS=1; init_kube_session;;
-	esac
-}
 
 case "$TERM" in
 	screen|xterm*|rxvt|Eterm|eterm|cygwin|linux)
@@ -45,7 +39,7 @@ function ps1_title {
 }
 
 function ps1_kube {
-	[ "$KUBE_DETAILS" = 1 ] || return
+	[ -z "$SESSION_KUBECONFIG" ] && return
 	echo '\n'$COLOR_BLUE'[$(kube_info)]'$COLOR_RESET
 }
 
