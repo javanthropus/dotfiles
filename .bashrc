@@ -1,3 +1,5 @@
+# vim: ts=2 sw=2 noet:
+
 # This file is sourced by all *interactive* bash shells on startup,
 # including some apparently interactive shells such as scp and rcp
 # that can't tolerate any output.
@@ -9,8 +11,8 @@ PATH=~/bin:/bin:$PATH
 # past this point for scp and rcp, and it's important to refrain from
 # outputting anything in those cases.
 if [[ $- != *i* ]]; then
-        # Shell is non-interactive.  Be done now
-        return
+	# Shell is non-interactive.  Be done now
+	return
 fi
 
 # Shell is interactive.  It is okay to produce output at this point,
