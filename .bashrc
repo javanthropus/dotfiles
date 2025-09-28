@@ -71,8 +71,12 @@ fi
 # Beep...
 alias beep="echo -ne \"\\007\""
 
-# Set the editor for git.
-export GIT_EDITOR='gvim -f'
+# Set the editor.
+EDITORS='nvim vim vi'
+if type -aP $EDITORS >/dev/null; then
+	export EDITOR=$(type -aP $EDITORS | head -n 1)
+fi
+unset EDITORS
 
 # Directory and file coloring for ls
 [ -e ~/.dircolors ] && DIRCOLORS=~/.dircolors
