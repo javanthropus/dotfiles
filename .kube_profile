@@ -1,3 +1,5 @@
+# vim: ts=2 sw=2 noet ft=sh:
+
 # Prints the currently selected k8s user, cluster, and namespace as
 # user@cluster:namespace.
 function kube_info {
@@ -157,4 +159,3 @@ function exit_kube_session {
 	kcnf_restore
 }
 
-# vim: set ft=sh:
