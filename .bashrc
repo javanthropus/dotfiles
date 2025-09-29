@@ -18,6 +18,9 @@ fi
 # Shell is interactive.  It is okay to produce output at this point.
 # Do setup for command-line interactivity.
 
+# Make managing the dotfiles content easy.
+alias dotfiles='git --git-dir $HOME/.dotfiles'
+
 . ~/.kube_profile
 
 case "$TERM" in

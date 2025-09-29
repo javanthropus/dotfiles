@@ -1,7 +1,4 @@
+/.dotfiles
+
 # Vim swap files
 .*.sw?
-
-# vimrc override
-.vim/vimrc.local
-
-bin/
