@@ -21,8 +21,6 @@ fi
 # Make managing the dotfiles content easy.
 alias dotfiles='git --git-dir $HOME/.dotfiles'
 
-. ~/.kube_profile
-
 case "$TERM" in
 	screen|xterm*|rxvt|Eterm|eterm|cygwin|linux)
 		COLOR_RED='\[\033[31m\]'
