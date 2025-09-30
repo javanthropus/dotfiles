@@ -26,34 +26,6 @@ function kube_info {
 	kubectl config view -o go-template="$KUBE_INFO"
 }
 
-# Manages the KUBECONFIG environment variable by apending the given config file
-# to the end of the list.  If no argument is given, the default KUBECONFIG
-# setting is reinstated.
-function kcnf {
-	KUBECONFIG=$(printf '%s:%s:%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | sed 's/:::*/:/g; s/^://; s/:$//')
-	export KUBECONFIG
-}
-function _kube_profile_configs {
-	COMPREPLY=()
-	[ $COMP_CWORD -gt 1 ] && return
-	local word="${COMP_WORDS[COMP_CWORD]}"
-	completions=$(cd $HOME/.kube && ls *.yaml | sed 's|\.yaml$||')
-	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
-}
-complete -F _kube_profile_configs kcnf
-
-# Records the current setting of the KUBECONFIG environment variable.
-function kcnf_save {
-	ORIG_KUBECONFIG=$KUBECONFIG
-	ORIG_KUBECONFIG_SET=1
-}
-
-# Reinstates the original setting of the KUBECONFIG environment variable.
-function kcnf_restore {
-	[ -z "$ORIG_KUBECONFIG_SET" ] || KUBECONFIG=$ORIG_KUBECONFIG
-	unset ORIG_KUBECONFIG_SET ORIG_KUBECONFIG
-}
-
 # Sets the name of the current context to use.
 function kco {
 	if [ -z "$1" ]; then
@@ -126,10 +98,118 @@ function _kube_profile_users {
 }
 complete -F _kube_profile_users ku
 
+# Sets the user, cluster, and/or namespace for the current context using the
+# format user@cluster:namespace. Components are optional and can be omitted.
+function kc {
+	if [ -z "$1" ]; then
+		echo 'kc: argument not provided' >&2
+		return 1
+	fi
+
+	local arg="$1"
+	local namespace
+	local cluster
+	local user
+	local config_args=()
+
+	# Parse user@cluster:namespace format
+	[[ "$arg" == *":"* ]] && namespace="${arg#*:}"
+	arg="${arg%%:*}"
+	[[ "$arg" == *"@"* ]] && cluster="${arg#*@}"
+	user="${arg%%@*}"
+
+	# Set configuration arguments for kubectl
+	if [[ -n "$namespace" ]]; then
+		config_args+=(--namespace "$namespace")
+	fi
+	if [[ -n "$cluster" ]]; then
+		config_args+=(--cluster "$cluster")
+	fi
+	if [[ -n "$user" ]]; then
+		config_args+=(--user "$user")
+	fi
+
+	# Set the context configuration
+	kubectl config set-context --current "${config_args[@]}"
+}
+function _kube_profile_settings {
+	local cur prev words cword
+	_get_comp_words_by_ref -n : cur prev words cword
+
+	COMPREPLY=()
+	[ $cword -gt 1 ] && return
+
+	# Determine what component we're completing based on the current word
+	if [[ "$cur" == *":"* ]]; then
+		# Completing namespace component
+		local prefix="${cur%:*}"
+		local ns_part="${cur##*:}"
+		local cluster
+		local user
+		local kubectl_opts=()
+
+		# Parse user@cluster:namespace format
+		local parse_word="${cur%%:*}"
+		[[ "$parse_word" == *"@"* ]] && cluster="${parse_word#*@}"
+		user="${parse_word%%@*}"
+
+		# Set configuration arguments for kubectl
+		if [[ -n "$cluster" ]]; then
+			kubectl_opts+=(--cluster "$cluster")
+		fi
+		if [[ -n "$user" ]]; then
+			kubectl_opts+=(--user "$user")
+		fi
+		local completions=$(kubectl "${kubectl_opts[@]}" get ns --no-headers -o custom-columns=NAME:.metadata.name)
+		COMPREPLY=( $(compgen -W "$completions" -P "${prefix}:" -- "$ns_part") )
+	elif [[ "$cur" == *"@"* ]]; then
+		# Completing cluster component (has @ but no :)
+		local prefix="${cur%@*}"
+		local cluster_part="${cur##*@}"
+		local completions=$(kubectl config view -o jsonpath='{.clusters[*].name}')
+		COMPREPLY=( $(compgen -W "$completions" -P "${prefix}@" -- "$cluster_part") )
+	else
+		# Completing user component (no @ or : yet, or empty/partial user)
+		local completions=$(kubectl config view -o jsonpath='{.users[*].name}')
+		COMPREPLY=( $(compgen -W "$completions" -- "$cur") )
+	fi
+
+	__ltrim_colon_completions "$cur"
+}
+complete -F _kube_profile_settings kc
+
+# Manages the KUBECONFIG environment variable by apending the given config file
+# to the end of the list.  If no argument is given, the default KUBECONFIG
+# setting is reinstated.
+function kcnf {
+	KUBECONFIG=$(printf '%s:%s:%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | sed 's/:::*/:/g; s/^://; s/:$//')
+	export KUBECONFIG
+}
+function _kube_profile_configs {
+	COMPREPLY=()
+	[ $COMP_CWORD -gt 1 ] && return
+	local word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(cd $HOME/.kube && ls *.yaml | sed 's|\.yaml$||')
+	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
+}
+complete -F _kube_profile_configs kcnf
+
+# Records the current setting of the KUBECONFIG environment variable.
+function _kube_kcnf_save {
+	ORIG_KUBECONFIG=$KUBECONFIG
+	ORIG_KUBECONFIG_SET=1
+}
+
+# Reinstates the original setting of the KUBECONFIG environment variable.
+function _kube_kcnf_restore {
+	[ -z "$ORIG_KUBECONFIG_SET" ] || KUBECONFIG=$ORIG_KUBECONFIG
+	unset ORIG_KUBECONFIG_SET ORIG_KUBECONFIG
+}
+
 # Initializes a new kubeconfig session by creating a temporary file to hold
 # session specific settings for context and prepending that file to the
 # KUBECONFIG environnment variable value.
-function init_kube_session {
+function _kube_session_init {
 	if [ -z "$SESSION_KUBECONFIG" ]; then
 		trap '[ -z "$SESSION_KUBECONFIG" ] || rm -f "$SESSION_KUBECONFIG"' EXIT
 		SESSION_KUBECONFIG=$(mktemp -t kube-session.XXXXXXXXXX)
@@ -141,7 +221,7 @@ function init_kube_session {
 
 	# Initialize the KUBECONFIG environment variable to include the session
 	# config file.
-	kcnf_save
+	_kube_kcnf_save
 	kcnf
 
 	if ! kubectl --kubeconfig "$SESSION_KUBECONFIG" config current-context >/dev/null 2>&1; then
@@ -151,20 +231,20 @@ function init_kube_session {
 	fi
 }
 
-function exit_kube_session {
+function _kube_session_exit {
 	[ -z "$SESSION_KUBECONFIG" ] && return
 
 	rm -f "$SESSION_KUBECONFIG"
 	unset SESSION_KUBECONFIG
-	kcnf_restore
+	_kube_kcnf_restore
 }
 
-function toggle_kube {
+function kube_session {
   if [ -z "$SESSION_KUBECONFIG" ]; then
-    init_kube_session
+    _kube_session_init
   else
-    exit_kube_session
+    _kube_session_exit
   fi
 }
 
-init_kube_session
+kube_session
