@@ -40,8 +40,8 @@ function ps1_title {
 }
 
 function ps1_kube {
-	[ -z "$SESSION_KUBECONFIG" ] && return
-	echo '\n'$COLOR_BLUE'[$(kube_info)]'$COLOR_RESET
+	type -t kube_info >/dev/null || return
+	echo $COLOR_BLUE'$(kube_info)'$COLOR_RESET
 }
 
 function ps1_info {
