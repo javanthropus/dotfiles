@@ -82,13 +82,12 @@ function kube_info {
 {{ $userName }} {{ $clusterName }} {{ $namespaceName }}'
 
 	local USER CLUSTER NAMESPACE
-	local kube_output=$(kubectl config view -o go-template="$KUBE_INFO" 2>/dev/null)
-	read -r USER CLUSTER NAMESPACE <<< "$kube_output"
+	read USER CLUSTER NAMESPACE < <(kubectl config view -o go-template="$KUBE_INFO" 2>/dev/null)
 
 	local RESULT
-	RESULT="${TEMPLATE/\%user\%/$USER}"
-	RESULT="${RESULT/\%cluster\%/$CLUSTER}"
-	RESULT="${RESULT/\%namespace\%/$NAMESPACE}"
+	RESULT="${TEMPLATE//\%user\%/$USER}"
+	RESULT="${RESULT//\%cluster\%/$CLUSTER}"
+	RESULT="${RESULT//\%namespace\%/$NAMESPACE}"
 	printf "$RESULT"
 }
 
@@ -143,6 +142,9 @@ function kc {
 }
 
 function _kube_kc_completion {
+	# Only complete the first argument
+	[[ $CURRENT -gt 2 ]] && return
+
 	local -a completions
 	local cur="${words[CURRENT]}"
 
@@ -168,17 +170,17 @@ function _kube_kc_completion {
 			kubectl_opts+=(--user "$user")
 		fi
 		completions=(${(f)"$(kubectl "${kubectl_opts[@]}" get ns --no-headers -o custom-columns=NAME:.metadata.name)"})
-		compadd -p "${prefix}:" - "${completions[@]}"
+		compadd -S " " -p "${prefix}:" - "${completions[@]}"
 	elif [[ "$cur" == *"@"* ]]; then
 		# Completing cluster component (has @ but no :)
 		local prefix="${cur%@*}"
 		local cluster_part="${cur##*@}"
-		completions=(${(f)"$(kubectl config view -o jsonpath='{.clusters[*].name}' | tr ' ' '\n')"})
-		compadd -p "${prefix}@" - "${completions[@]}"
+		completions=(${(f)"$(kubectl config view -o jsonpath='{range .clusters[*]}{.name}{"\n"}{end}')"})
+		compadd -S "" -p "${prefix}@" - "${completions[@]}"
 	else
 		# Completing user component (no @ or : yet, or empty/partial user)
-		completions=(${(f)"$(kubectl config view -o jsonpath='{.users[*].name}' | tr ' ' '\n')"})
-		compadd - "${completions[@]}"
+		completions=(${(f)"$(kubectl config view -o jsonpath='{range .users[*]}{.name}{"\n"}{end}')"})
+		compadd -S "" - "${completions[@]}"
 	fi
 }
 compdef _kube_kc_completion kc
@@ -196,7 +198,11 @@ function kco {
 }
 
 function _kube_kco_completion {
+	# Only complete the first argument
+	[[ $CURRENT -gt 2 ]] && return
+
 	local -a completions
+
 	completions=(${(f)"$(kubectl config get-contexts --no-headers -o name)"})
 	compadd - "${completions[@]}"
 }
@@ -215,8 +221,12 @@ function kcl {
 }
 
 function _kube_kcl_completion {
+	# Only complete the first argument
+	[[ $CURRENT -gt 2 ]] && return
+
 	local -a completions
-	completions=(${(f)"$(kubectl config get-clusters | tail -n +2)"})
+
+	completions=(${(f)"$(kubectl config view -o jsonpath='{range .clusters[*]}{.name}{"\n"}{end}')"})
 	compadd - "${completions[@]}"
 }
 compdef _kube_kcl_completion kcl
@@ -234,7 +244,11 @@ function kns {
 }
 
 function _kube_kns_completion {
+	# Only complete the first argument
+	[[ $CURRENT -gt 2 ]] && return
+
 	local -a completions
+
 	completions=(${(f)"$(kubectl get ns --no-headers -o custom-columns=NAME:.metadata.name)"})
 	compadd - "${completions[@]}"
 }
@@ -253,8 +267,12 @@ function ku {
 }
 
 function _kube_ku_completion {
+	# Only complete the first argument
+	[[ $CURRENT -gt 2 ]] && return
+
 	local -a completions
-	completions=(${(f)"$(kubectl config get-users | tail -n +2)"})
+
+	completions=(${(f)"$(kubectl config view -o jsonpath='{range .users[*]}{.name}{"\n"}{end}')"})
 	compadd - "${completions[@]}"
 }
 compdef _kube_ku_completion ku
@@ -270,7 +288,11 @@ function kcnf {
 }
 
 function _kube_kcnf_completion {
+	# Only complete the first argument
+	[[ $CURRENT -gt 2 ]] && return
+
 	local -a completions
+
 	completions=(${(f)"$(cd $HOME/.kube && ls *.yaml | sed 's|\.yaml$||')"})
 	compadd - "${completions[@]}"
 }
