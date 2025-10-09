@@ -142,7 +142,7 @@ function kc {
 }
 
 function _kube_kc_completion {
-	local cur prev words cword
+	local cur prev words cword completions
 	_get_comp_words_by_ref -n : cur prev words cword
 
 	COMPREPLY=()
@@ -169,23 +169,23 @@ function _kube_kc_completion {
 		if [[ -n "$user" ]]; then
 			kubectl_opts+=(--user "$user")
 		fi
-		local completions=$(kubectl "${kubectl_opts[@]}" get ns --no-headers -o custom-columns=NAME:.metadata.name)
-		COMPREPLY=( $(compgen -W "$completions" -P "${prefix}:" -- "$ns_part") )
+		completions=$(kubectl "${kubectl_opts[@]}" get ns --no-headers -o custom-columns=NAME:.metadata.name)
+		COMPREPLY=( $(compgen -W "$completions" -P "${prefix}:" -S " " -- "$ns_part") )
 	elif [[ "$cur" == *"@"* ]]; then
 		# Completing cluster component (has @ but no :)
 		local prefix="${cur%@*}"
 		local cluster_part="${cur##*@}"
-		local completions=$(kubectl config view -o jsonpath='{.clusters[*].name}')
+		completions=$(kubectl config view -o jsonpath='{range .clusters[*]}{.name}{"\n"}{end}')
 		COMPREPLY=( $(compgen -W "$completions" -P "${prefix}@" -- "$cluster_part") )
 	else
 		# Completing user component (no @ or : yet, or empty/partial user)
-		local completions=$(kubectl config view -o jsonpath='{.users[*].name}')
+		completions=$(kubectl config view -o jsonpath='{range .users[*]}{.name}{"\n"}{end}')
 		COMPREPLY=( $(compgen -W "$completions" -- "$cur") )
 	fi
 
 	__ltrim_colon_completions "$cur"
 }
-complete -F _kube_kc_completion kc
+complete -o nospace -F _kube_kc_completion kc
 
 
 ##
@@ -200,9 +200,11 @@ function kco {
 }
 
 function _kube_kco_completion {
+	local word completions
+
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local word="${COMP_WORDS[COMP_CWORD]}"
+	word="${COMP_WORDS[COMP_CWORD]}"
 	completions=$(kubectl config get-contexts --no-headers -o name)
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
@@ -212,6 +214,8 @@ complete -F _kube_kco_completion kco
 ##
 # Sets the name of the cluster to use in the currently selected context.
 function kcl {
+	local word completions
+
 	if [ -z "$1" ]; then
 		echo 'kcl: cluster not provided' >&2
 		return 1
@@ -221,10 +225,12 @@ function kcl {
 }
 
 function _kube_kcl_completion {
+	local word completions
+
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local word="${COMP_WORDS[COMP_CWORD]}"
-	completions=$(kubectl config get-clusters | tail -n +2)
+	word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(kubectl config view -o jsonpath='{range .clusters[*]}{.name}{"\n"}{end}')
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_kcl_completion kcl
@@ -242,9 +248,11 @@ function kns {
 }
 
 function _kube_kns_completion {
+	local word completions
+
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local word="${COMP_WORDS[COMP_CWORD]}"
+	word="${COMP_WORDS[COMP_CWORD]}"
 	completions=$(kubectl get ns --no-headers -o custom-columns=NAME:.metadata.name)
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
@@ -263,10 +271,12 @@ function ku {
 }
 
 function _kube_ku_completion {
+	local word completions
+
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local word="${COMP_WORDS[COMP_CWORD]}"
-	completions=$(kubectl config get-users | tail -n +2)
+	word="${COMP_WORDS[COMP_CWORD]}"
+	completions=$(kubectl config view -o jsonpath='{range .users[*]}{.name}{"\n"}{end}')
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_ku_completion ku
@@ -282,9 +292,11 @@ function kcnf {
 }
 
 function _kube_kcnf_completion {
+	local word completions
+
 	COMPREPLY=()
 	[ $COMP_CWORD -gt 1 ] && return
-	local word="${COMP_WORDS[COMP_CWORD]}"
+	word="${COMP_WORDS[COMP_CWORD]}"
 	completions=$(cd $HOME/.kube && ls *.yaml | sed 's|\.yaml$||')
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
