@@ -91,9 +91,20 @@ if [[ -x "$HOME/.rbenv/bin/rbenv" ]]; then
 	eval "$(rbenv init -)"
 fi
 
+# This loads asdf, if available.
+if type -ap asdf >/dev/null; then
+	PATH="$HOME/.asdf/shims:$PATH"
+	eval "$(asdf completion bash)"
+fi
+
 # This loads rust, if available.
 if [[ -f "$HOME/.cargo/env" ]]; then
 	source "$HOME/.cargo/env"
+fi
+
+# Add installed node tools.
+if [[ -d "$HOME/.npm-global/bin" ]]; then
+	PATH="$HOME/.npm-global/bin:$PATH"
 fi
 
 [ ! -f ~/.bashrc_local ] || . ~/.bashrc_local
