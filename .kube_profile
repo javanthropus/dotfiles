@@ -67,15 +67,9 @@ function kube_info {
 {{- $namespaceName := "default" }}
 {{- range .contexts }}
   {{- if eq .name (index $ "current-context") }}
-    {{- if .context.user }}
-      {{- $userName = .context.user }}
-    {{- end }}
-    {{- if .context.cluster }}
-      {{- $clusterName = .context.cluster }}
-    {{- end }}
-    {{- if .context.namespace }}
-      {{- $namespaceName = .context.namespace }}
-    {{- end }}
+    {{- $userName = or .context.user $userName }}
+    {{- $clusterName = or .context.cluster $clusterName }}
+    {{- $namespaceName = or .context.namespace $namespaceName }}
     {{- break }}
   {{- end }}
 {{- end -}}
