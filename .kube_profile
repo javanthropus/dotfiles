@@ -320,10 +320,6 @@ function _kube_session_init {
 		SESSION_KUBECONFIG=$(mktemp -t kube-session.XXXXXXXXXX)
 	fi
 
-	# Initialize the session config from its template file if available.
-	[ -f ~/.kube/session_config ] &&
-		cp ~/.kube/session_config "$SESSION_KUBECONFIG"
-
 	# Initialize the KUBECONFIG environment variable to include the session
 	# config file.
 	_kube_kcnf_save
