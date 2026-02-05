@@ -1,8 +1,7 @@
-if true then return {} end
-
 return {
   {
-    "yetone/avante.nvim",
+    "javanthropus/avante.nvim",
+    branch = 'fixes',
     -- if you want to build from source then do `make BUILD_FROM_SOURCE=true`
     -- ⚠️ must add this setting! ! !
     -- build = vim.fn.has("win32") and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
@@ -12,18 +11,27 @@ return {
     ---@module 'avante'
     ---@type avante.Config
     opts = {
+      --debug = true,
       -- add any opts here
       -- for example
-      provider = "claude",
-      providers = {
-        claude = {
-          endpoint = "https://api.anthropic.com",
-          model = "claude-sonnet-4-20250514",
-          timeout = 30000, -- Timeout in milliseconds
-          extra_request_body = {
-            temperature = 0.75,
-            max_tokens = 20480,
+      windows = {
+        position = "smart",
+        force_stacked_layout = true,
+      },
+      mappings = {
+        submit = {
+          -- insert = "<C-CR>",
+        },
+      },
+      provider = "gemini-cli",
+      acp_providers = {
+        ["gemini-cli"] = {
+          env = {
+            NODE_NO_WARNINGS = "1",
           },
+          -- This disables any attempt to authenticate explicitly, which for
+          -- gemini-cli means that oauth-personal is used.
+          auth_method = false,
         },
       },
     },
@@ -31,7 +39,7 @@ return {
       "nvim-lua/plenary.nvim",
       "MunifTanjim/nui.nvim",
       --- The below dependencies are optional,
-      "echasnovski/mini.pick", -- for file_selector provider mini.pick
+      "nvim-mini/mini.pick", -- for file_selector provider mini.pick
       "nvim-telescope/telescope.nvim", -- for file_selector provider telescope
       "hrsh7th/nvim-cmp", -- autocompletion for avante commands and mentions
       "ibhagwan/fzf-lua", -- for file_selector provider fzf
