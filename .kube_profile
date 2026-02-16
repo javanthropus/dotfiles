@@ -18,8 +18,10 @@
 # "session" context is selected as the current context by default.
 #
 # Helper functions such as kc, ku, kcl, and kns allow you to manipulate the
-# user, cluster, and/or namespace associated with the current context.  See
-# their individual function documentation for more information.
+# user, cluster, and/or namespace associated with the current context.  Each
+# of these functions supports passing `-` as an argument to switch back to the
+# previous value, similar to `cd -`.  See their individual function
+# documentation for more information.
 #
 # The kcnf function allows you to include an additional kubeconfig file to the
 # end of the list of kubeconfig list.  Giving it an argument of "example" will
@@ -37,6 +39,10 @@
 # that can be useful for command prompts to help track the context.  The
 # kube_session function toggles the session on and off.
 #####
+
+###
+# User functions
+###
 
 ##
 # Prints the currently selected k8s user, cluster, and namespace given a
@@ -61,30 +67,15 @@ function kube_info {
 	local TEMPLATE='\n[%user%@%cluster%:%namespace%]'
 	[ -n "$1" ] && TEMPLATE=$1
 
-	local KUBE_INFO='
-{{- $userName := "(none)" }}
-{{- $clusterName := "localhost" }}
-{{- $namespaceName := "default" }}
-{{- range .contexts }}
-  {{- if eq .name (index $ "current-context") }}
-    {{- $userName = or .context.user $userName }}
-    {{- $clusterName = or .context.cluster $clusterName }}
-    {{- $namespaceName = or .context.namespace $namespaceName }}
-    {{- break }}
-  {{- end }}
-{{- end -}}
-{{ $userName }} {{ $clusterName }} {{ $namespaceName }}'
-
-	local USER CLUSTER NAMESPACE
-	read USER CLUSTER NAMESPACE < <(kubectl config view -o go-template="$KUBE_INFO" 2>/dev/null)
+	local ctx_user ctx_cluster ctx_namespace
+	IFS=: read -r ctx_user ctx_cluster ctx_namespace <<< "$(_kube_read_context)"
 
 	local RESULT
-	RESULT="${TEMPLATE//%user%/$USER}"
-	RESULT="${RESULT//%cluster%/$CLUSTER}"
-	RESULT="${RESULT//%namespace%/$NAMESPACE}"
+	RESULT="${TEMPLATE//%user%/${ctx_user:-(none)}}"
+	RESULT="${RESULT//%cluster%/${ctx_cluster:-localhost}}"
+	RESULT="${RESULT//%namespace%/${ctx_namespace:-default}}"
 	printf "$RESULT"
 }
-
 
 ##
 # Sets the user, cluster, and/or namespace for the current context using the
@@ -92,6 +83,9 @@ function kube_info {
 #
 # Components are optional and can be omitted. Cluster names must start with @,
 # and namespace names must start with :.
+#
+# Pass `-` to switch back to the previous user, cluster, and namespace
+# configuration.  If no previous configuration exists, an error is returned.
 #
 # Examples:
 #
@@ -102,10 +96,25 @@ function kube_info {
 # kc @cluster:namespace
 # kc user:namespace
 # kc user@cluster:namespace
+# kc -
 function kc {
 	if [ -z "$1" ]; then
 		echo 'kc: argument not provided' >&2
 		return 1
+	fi
+
+	if [ "$1" = "-" ]; then
+		if [ -z "${_KUBE_PREV_USER+x}" ]; then
+			echo 'kc: no previous context' >&2
+			return 1
+		fi
+		local prev_user="$_KUBE_PREV_USER"
+		local prev_cluster="$_KUBE_PREV_CLUSTER"
+		local prev_namespace="$_KUBE_PREV_NAMESPACE"
+		_kube_save_context
+		set -- "${prev_user}@${prev_cluster}:${prev_namespace}"
+	else
+		_kube_save_context
 	fi
 
 	local arg="$1"
@@ -134,6 +143,127 @@ function kc {
 	# Set the context configuration
 	kubectl config set-context --current "${config_args[@]}"
 }
+
+##
+# Sets the name of the current context to use.
+function kco {
+	if [ -z "$1" ]; then
+		echo 'kco: context not provided' >&2
+		return 1
+	fi
+
+	kubectl config use-context "$1"
+}
+
+##
+# Sets the name of the cluster to use in the currently selected context.
+#
+# Pass `-` to switch back to the previous cluster.  If no previous cluster
+# exists, an error is returned.
+function kcl {
+	local word completions
+
+	if [ -z "$1" ]; then
+		echo 'kcl: cluster not provided' >&2
+		return 1
+	fi
+
+	if [ "$1" = "-" ]; then
+		if [ -z "${_KUBE_PREV_CLUSTER+x}" ]; then
+			echo 'kcl: no previous context' >&2
+			return 1
+		fi
+		local prev_cluster="$_KUBE_PREV_CLUSTER"
+		_kube_save_context
+		set -- "$prev_cluster"
+	else
+		_kube_save_context
+	fi
+
+	kubectl config set-context --current --cluster "$1"
+}
+
+##
+# Sets the name of the namespace to use in the currently selected context.
+#
+# Pass `-` to switch back to the previous namespace.  If no previous namespace
+# exists, an error is returned.
+function kns {
+	if [ -z "$1" ]; then
+		echo 'kns: namespace not provided' >&2
+		return 1
+	fi
+
+	if [ "$1" = "-" ]; then
+		if [ -z "${_KUBE_PREV_NAMESPACE+x}" ]; then
+			echo 'kns: no previous context' >&2
+			return 1
+		fi
+		local prev_namespace="$_KUBE_PREV_NAMESPACE"
+		_kube_save_context
+		set -- "$prev_namespace"
+	else
+		_kube_save_context
+	fi
+
+	kubectl config set-context --current --namespace "$1"
+}
+
+##
+# Sets the name of the user to use in the currently selected context.
+#
+# Pass `-` to switch back to the previous user.  If no previous user exists,
+# an error is returned.
+function ku {
+	if [ -z "$1" ]; then
+		echo 'ku: user not provided' >&2
+		return 1
+	fi
+
+	if [ "$1" = "-" ]; then
+		if [ -z "${_KUBE_PREV_USER+x}" ]; then
+			echo 'ku: no previous context' >&2
+			return 1
+		fi
+		local prev_user="$_KUBE_PREV_USER"
+		_kube_save_context
+		set -- "$prev_user"
+	else
+		_kube_save_context
+	fi
+
+	kubectl config set-context --current --user "$1"
+}
+
+##
+# Manages the KUBECONFIG environment variable by apending the given config file
+# to the end of the list.  If no argument is given, the default KUBECONFIG
+# setting is reinstated.
+function kcnf {
+	KUBECONFIG=$(printf '%s:%s:%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | sed 's/:::*/:/g; s/^://; s/:$//')
+	export KUBECONFIG
+}
+
+##
+# Toggles the active status of the kubeconfig session.
+function kube_session {
+  if kube_session_is_active; then
+    _kube_session_exit
+  else
+    _kube_session_init
+  fi
+}
+
+##
+# Exits successfully if the kubeconfig session is active.
+function kube_session_is_active {
+	[ -n "$SESSION_KUBECONFIG" ]
+}
+
+
+###
+# Completion functions
+###
 
 function _kube_kc_completion {
 	local cur prev words cword completions
@@ -181,18 +311,6 @@ function _kube_kc_completion {
 }
 complete -o nospace -F _kube_kc_completion kc
 
-
-##
-# Sets the name of the current context to use.
-function kco {
-	if [ -z "$1" ]; then
-		echo 'kco: context not provided' >&2
-		return 1
-	fi
-
-	kubectl config use-context "$1"
-}
-
 function _kube_kco_completion {
 	local word completions
 
@@ -203,20 +321,6 @@ function _kube_kco_completion {
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_kco_completion kco
-
-
-##
-# Sets the name of the cluster to use in the currently selected context.
-function kcl {
-	local word completions
-
-	if [ -z "$1" ]; then
-		echo 'kcl: cluster not provided' >&2
-		return 1
-	fi
-
-	kubectl config set-context --current --cluster "$1"
-}
 
 function _kube_kcl_completion {
 	local word completions
@@ -229,18 +333,6 @@ function _kube_kcl_completion {
 }
 complete -F _kube_kcl_completion kcl
 
-
-##
-# Sets the name of the namespace to use in the currently selected context.
-function kns {
-	if [ -z "$1" ]; then
-		echo 'kns: namespace not provided' >&2
-		return 1
-	fi
-
-	kubectl config set-context --current --namespace "$1"
-}
-
 function _kube_kns_completion {
 	local word completions
 
@@ -251,18 +343,6 @@ function _kube_kns_completion {
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_kns_completion kns
-
-
-##
-# Sets the name of the user to use in the currently selected context.
-function ku {
-	if [ -z "$1" ]; then
-		echo 'ku: user not provided' >&2
-		return 1
-	fi
-
-	kubectl config set-context --current --user "$1"
-}
 
 function _kube_ku_completion {
 	local word completions
@@ -275,16 +355,6 @@ function _kube_ku_completion {
 }
 complete -F _kube_ku_completion ku
 
-
-##
-# Manages the KUBECONFIG environment variable by apending the given config file
-# to the end of the list.  If no argument is given, the default KUBECONFIG
-# setting is reinstated.
-function kcnf {
-	KUBECONFIG=$(printf '%s:%s:%s' "$SESSION_KUBECONFIG" "${ORIG_KUBECONFIG:-$HOME/.kube/config}" "${1:+$HOME/.kube/$1.yaml}" | sed 's/:::*/:/g; s/^://; s/:$//')
-	export KUBECONFIG
-}
-
 function _kube_kcnf_completion {
 	local word completions
 
@@ -295,6 +365,40 @@ function _kube_kcnf_completion {
 	COMPREPLY=( $(compgen -W "$completions" -- "$word") )
 }
 complete -F _kube_kcnf_completion kcnf
+
+
+###
+# Helper functions
+###
+
+##
+# Prints the current context's user, cluster, and namespace as a
+# colon-separated list to stdout.
+function _kube_read_context {
+	local KUBE_CTX='
+{{- $userName := "" }}
+{{- $clusterName := "" }}
+{{- $namespaceName := "" }}
+{{- range .contexts }}
+  {{- if eq .name (index $ "current-context") }}
+    {{- with .context.user }}{{ $userName = . }}{{ end }}
+    {{- with .context.cluster }}{{ $clusterName = . }}{{ end }}
+    {{- with .context.namespace }}{{ $namespaceName = . }}{{ end }}
+    {{- break }}
+  {{- end }}
+{{- end -}}
+{{ $userName }}:{{ $clusterName }}:{{ $namespaceName }}'
+
+	kubectl config view -o go-template="$KUBE_CTX" 2>/dev/null
+}
+
+##
+# Saves the current context configuration to _KUBE_PREV_USER,
+# _KUBE_PREV_CLUSTER, and _KUBE_PREV_NAMESPACE so that functions can
+# independently switch back their respective components with `-`.
+function _kube_save_context {
+	IFS=: read -r _KUBE_PREV_USER _KUBE_PREV_CLUSTER _KUBE_PREV_NAMESPACE <<< "$(_kube_read_context)"
+}
 
 ##
 # Records the current setting of the KUBECONFIG environment variable.
@@ -342,21 +446,6 @@ function _kube_session_exit {
 	_kube_kcnf_restore
 }
 
-##
-# Exits successfully if the kubeconfig session is active.
-function kube_session_is_active {
-	[ -n "$SESSION_KUBECONFIG" ]
-}
-
-##
-# Toggles the active status of the kubeconfig session.
-function kube_session {
-  if kube_session_is_active; then
-    _kube_session_exit
-  else
-    _kube_session_init
-  fi
-}
 
 # Activate a new session.
 kube_session
