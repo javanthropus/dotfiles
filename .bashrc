@@ -97,11 +97,6 @@ if type -ap asdf >/dev/null; then
 	eval "$(asdf completion bash)"
 fi
 
-# This loads rust, if available.
-if [[ -f "$HOME/.cargo/env" ]]; then
-	source "$HOME/.cargo/env"
-fi
-
 # Add installed node tools.
 export NPM_CONFIG_PREFIX="$HOME/.npm-global"
 if [[ -d "$HOME/.npm-global/bin" ]]; then
